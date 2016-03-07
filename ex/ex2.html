@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+        return { x : x - bbox.left, y : y - bbox.top };
+    }
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    function Ball() {
+        this.radius = 10;
+
+        this.x = 0;
+        this.y = 0;
+        this.color = "black";
+        this.v = new Vector2d(0, 0);
+    }
+
+    Ball.prototype = {
+        draw: function() {
+            context.save();
+
+            context.translate(this.x, this.y);
+
+            context.beginPath();
+            context.arc(0,0,this.radius,0,Math.PI * 2);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    }
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        add : function (vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+        sub : function (vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+        scale : function (scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+        dot : function (vec) {
+            return this.x * vec.x + this.y * vec.y;
+        },
+        length : function () {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+        normalize : function () {
+            var len = this.length();
+            return new Vector2d(this.x / len, this.y / len);
+        },
+        perp : function () {
+            return new Vector2d(-this.y, this.x);
+        }
+    };
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    function Point(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    function Line(sPt, ePt) {
+        this.sPt = sPt;
+        this.ePt = ePt;
+    }
+    Line.prototype = {
+        draw : function () {
+            context.save();
+
+            context.beginPath();
+            context.moveTo(this.sPt.x, this.sPt.y);
+            context.lineTo(this.ePt.x, this.ePt.y);
+            context.stroke();
+
+            context.restore();
+        }
+    }
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    function Box(x, y, width, height, anchorX, anchorY, cw) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.anchorX = width * anchorX;
+        this.anchorY = height * anchorY;
+        this.cw = cw;
+
+        this.init();
+
+        this.vx = 0;
+        this.vy = 0;
+        this.vr = 0;
+    }
+    Box.prototype = {
+        init : function() {
+            this.lt = new Point(this.x - this.anchorX, this.y - this.anchorY);
+            this.rt = new Point(this.lt.x + this.width, this.lt.y);
+            this.rb = new Point(this.rt.x, this.rt.y + this.height);
+            this.lb = new Point(this.lt.x, this.rb.y);
+
+            this.points = [this.lt, this.rt, this.rb, this.lb];
+            if(this.cw)
+                this.lines = [new Line(this.lt, this.rt), new Line(this.rt, this.rb), new Line(this.rb, this.lb), new Line(this.lb, this.lt)];
+            else this.lines = [new Line(this.lt, this.lb), new Line(this.lb, this.rb), new Line(this.rb, this.rt), new Line(this.rt, this.lt)];
+        },
+        translate : function (tx, ty) {
+            for(var i = 0; i < this.points.length; i++) {
+                var pt = this.points[i];
+
+                pt.x = pt.x + tx;
+                pt.y = pt.y + ty;
+            }
+            this.x += tx;
+            this.y += ty;
+        },
+        scale : function (sx, sy) {
+            for(var i = 0; i < this.points.length; i++) {
+                var pt = this.points[i];
+
+                pt.x = pt.x - this.x;
+                pt.y = pt.y - this.y;
+
+                pt.x = pt.x * sx;
+                pt.y = pt.y * sy;
+
+                pt.x = pt.x + this.x;
+                pt.y = pt.y + this.y;
+            }
+        },
+        rotate : function (r) {
+            var cos = Math.cos(r);
+            var sin = Math.sin(r);
+            for(var i = 0; i < this.points.length; i++) {
+                var pt = this.points[i];
+
+                pt.x = pt.x - this.x;
+                pt.y = pt.y - this.y;
+
+                var x = pt.x;
+                var y = pt.y;
+
+                pt.x = cos * x - sin * y;
+                pt.y = sin * x + cos * y;
+
+                pt.x = pt.x + this.x;
+                pt.y = pt.y + this.y;
+            }
+        },
+        transform : function (a, b, c, d, tx, ty) {
+            for(var i = 0; i < this.points.length; i++) {
+                var pt = this.points[i];
+                var x = pt.x;
+                var y = pt.y;
+
+                pt.x = a * x + c * y + tx;
+                pt.y = b * x + d * y + ty;
+            }
+        },
+        setTransform :function (a, b, c, d, tx, ty) {
+            this.init();
+
+            this.transform(a, b, c, d, tx, ty);
+        },
+        transformMatrix : function (mat) {
+            for(var i = 0; i < this.points.length; i++) {
+                var pt = this.points[i];
+
+                var x = pt.x;
+                var y = pt.y;
+
+                pt.x = mat.a * x + mat.c * y + mat.tx;
+                pt.y = mat.b * x + mat.d * y + mat.ty;
+            }
+        },
+        draw : function () {
+            for(var i = 0; i < this.lines.length; i++) {
+                this.lines[i].draw();
+            }
+        }
+    };
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+
+    var boundary = new Box(canvas.width/2, canvas.height /2, 500, 500, 0.5, 0.5, true);
+    var box0 = new Box(400, 500, 100, 100, 0.5, 0.5, false);
+    var box1 = new Box(200, 200, 100, 100, 0.5, 0.5, false);
+    var box2 = new Box(600, 100, 100, 100, 0.5, 0.5, false);
+
+    var boxes = [boundary, box0, box1, box2];
+
+    box0.vy = 2;
+    box0.vr = 0.05;
+
+    box1.vy = 2;
+    box1.vr = 0.05;
+
+    box2.vy = 2;
+    box2.vr = 0.05;
+
+//    box1.rotate(0.2);
+//    box2.rotate(-0.2);
+
+    var bounce = 1;
+    var gravity = 0;
+    var startX = 10;
+    var startY = 10;
+    var speed = 10;
+
+    var ball = new Ball();
+
+    canvas.onmousedown = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        ball.x = startX;
+        ball.y = startY;
+        gravity = 0.4;
+        var m = new Vector2d(loc.x - ball.x, loc.y - ball.y);
+        ball.v = m.normalize().scale(speed);
+    }
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        boundary.rotate(0.005);
+
+        box0.rotate(box0.vr);
+        box0.translate(box0.vx, box0.vy);
+
+        box1.rotate(box1.vr);
+        box1.translate(box1.vx, box1.vy);
+
+        box2.rotate(box2.vr);
+        box2.translate(box2.vx, box2.vy);
+
+
+        ball.v.y += gravity;
+        ball.x += ball.v.x;
+        ball.y += ball.v.y;
+
+        for(var i = 0; i < boxes.length; i++) {
+            hitTestBox(boxes[i]);
+        }
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function hitTestBox(box) {
+        for(var i = 0; i < box.lines.length; i++) {
+            var line = box.lines[i];
+            hitTestByDistance(line);
+            hitTestByIntersect(line);
+        }
+    }
+
+    function hitTestByDistance(line) {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = new Vector2d(line.sPt.x - ball.x, line.sPt.y - ball.y);
+
+        var t = b.dot(a) / a.dot(a) * -1;
+
+        if( t < 0 || t > 1) return;
+
+        var p = a.scale(t).add(b);
+
+        var len = p.length();
+
+        if(len <= ball.radius) {
+            var c = b.scale(-1);
+            var d = a.perp().normalize();
+
+            var len = ball.radius - c.dot(d);
+
+            var e = d.scale(len);
+
+            ball.x += e.x;
+            ball.y += e.y;
+
+            reflectVector(line);
+        }
+    }
+
+    function hitTestByIntersect(line) {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = new Vector2d(line.sPt.x - ball.x, line.sPt.y - ball.y);
+        var c = ball.v.perp();
+
+        var t = b.dot(c) / a.dot(c) * -1;
+
+        var d = b.scale(-1);
+        var e = a.perp();
+
+        var s = d.dot(e) / ball.v.dot(e) * -1;
+
+        if(t < 0 || t > 1 || s < 0 || s > 1) return;
+
+        var p = a.scale(t).add(b);
+        var f = e.normalize().scale(ball.radius);
+        var g = p.add(f);
+
+        ball.x += g.x;
+        ball.y += g.y;
+
+        reflectVector(line);
+    }
+
+    function reflectVector(line) {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = ball.v.scale(-1);
+        var c = a.perp().normalize();
+        var len = b.dot(c);
+        var n = c.scale(len);
+
+        ball.v = ball.v.add(n.scale(2));
+    }
+
+    function render() {
+        context.clearRect(0,0, canvas.width, canvas.height);
+
+        for(var i = 0; i < boxes.length; i++) {
+            var box = boxes[i];
+
+            if(box.x > canvas.width) {
+                box.vx *= -1;
+                box.vr *= -1;
+            } else if(box.x < 0) {
+                box.vx *= -1;
+                box.vr *= -1;
+            } else if(box.y > canvas.height - 100) {
+                box.vy *= -1;
+                box.vr *= -1;
+            } else if(box.y < 0 + 100) {
+                box.vy *= -1;
+                box.vr *= -1;
+            }
+            box.draw();
+        }
+
+        ball.draw();
+    }
+
+
+</script>
+</body>
+</html>

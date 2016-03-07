@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+
+        return { x : x - bbox.left, y : y - bbox.top }
+    }
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        add : function (vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+        sub : function (vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+        scale : function (scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+        dot : function (vec) {
+            return this.x * vec.x + this.y * vec.y;
+        },
+        length : function () {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+        normalize : function () {
+            var len = this.length();
+            return new Vector2d(this.x / len, this.y / len);
+        },
+        perp : function (cw) {
+            if(cw)
+                return new Vector2d(-this.y, this.x);
+            else return new Vector2d(this.y, -this.x);
+        }
+    };
+    ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    function Point(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    function Line(sPt, ePt) {
+        this.sPt = sPt;
+        this.ePt = ePt;
+    }
+    Line.prototype = {
+        draw : function () {
+            context.save();
+
+            context.beginPath();
+            context.moveTo(this.sPt.x, this.sPt.y);
+            context.lineTo(this.ePt.x, this.ePt.y);
+            context.stroke();
+
+            context.restore();
+        }
+    }
+    ///////////////////////////////////////////
+    ///////////////////////////////////////////
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+        this.radius = 10;
+        this.color = "red";
+        this.angle = 0;
+    }
+
+    Ball.prototype = {
+        draw : function () {
+            context.save();
+
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+
+            context.beginPath();
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            //context.fillRect(-50, -5, 50, 10);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    };
+
+    var ball = new Ball();
+    ball.color = "red";
+
+    var speed = 30;
+
+    var gravity = 0.4;
+
+    var bounce = 0.97;
+
+    var startX = 50;
+    var startY = 300;
+
+    ball.x = startX;
+    ball.y = startY;
+
+    var v = new Vector2d(0, 0);
+
+
+    var line1 = new Line(new Point(500, 400), new Point(800, 300));
+    var line2 = new Line(new Point(400, 600), new Point(500, 400));
+    var line3 = new Line(new Point(0, 600), new Point(200, 400));
+    var line4 = new Line(new Point(200, 400), new Point(450, 600));
+
+    var leftWall = new Line(new Point(10, 10), new Point(10, canvas.height - 10));
+    var rightWall = new Line( new Point(canvas.width - 10, canvas.height - 10), new Point(canvas.width - 10, 10));
+    var bottomWall = new Line(new Point(10, canvas.height - 10), new Point(canvas.width - 10, canvas.height - 10));
+    var topWall = new Line(new Point(canvas.width - 10, 10), new Point(10, 10));
+
+    var lines = [line1, line2, line3, line4, leftWall, rightWall, bottomWall, topWall];
+
+    canvas.onmousedown = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        var dx = loc.x - startX;
+        var dy = loc.y - startY;
+
+        var mv = new Vector2d(dx, dy);
+        mv = mv.normalize().scale(speed);
+
+        ball.x = startX;
+        ball.y = startY;
+
+        v = mv;
+    }
+
+    function hitTestByDistance(line) {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = new Vector2d(line.sPt.x - ball.x, line.sPt.y - ball.y);
+
+        var t = b.dot(a) / a.dot(a) * -1;
+
+        if(t < 0 || t > 1) return;
+
+        var p = a.scale(t).add(b);
+
+        if(p.length() <= ball.radius) {
+
+            var c = a.perp(false).normalize();
+            var len = b.scale(-1).dot(c);
+
+            var d = c.scale(ball.radius - len);
+
+            ball.x += d.x;
+            ball.y += d.y;
+
+            v = reflectVector(a);
+
+            return true;
+        }
+        return false;
+    }
+
+    function reflectVector(w) {
+        var a = w.perp(false).normalize();
+
+        var e = v.scale(-1).dot(a);
+        var f = a.scale(e);
+
+        return v.add(f).add(f).scale(bounce);
+    }
+
+    function hitTestByIntersect(line) {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = new Vector2d(line.sPt.x - (ball.x - v.x), line.sPt.y - (ball.y - v.y));
+        var c = v.perp(false);
+
+        var t = b.dot(c) / a.dot(c) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var d = b.scale(-1);
+        var e = a.perp(false);
+
+        var s = d.dot(e) / v.dot(e) * -1;
+
+        if(s < 0 || s > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        var f = v.sub(p);
+        ball.x -= f.x;
+        ball.y -= f.y;
+
+        var g = a.perp(false);
+        var h = g.normalize().scale(ball.radius);
+
+        ball.x += h.x;
+        ball.y += h.y;
+
+        v = reflectVector(a);
+
+        return true;
+    }
+
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        v.y += gravity;
+        ball.x += v.x;
+        ball.y += v.y;
+
+        for(var i = 0; i < lines.length; i++) {
+            if(!hitTestByDistance(lines[i])){
+                if(hitTestByIntersect(lines[i]))
+                {
+
+                }
+            }
+
+        }
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        for(var i = 0; i < lines.length; i++) {
+            lines[i].draw();
+        }
+        ball.draw();
+    }
+</script>
+</body>
+</html>
