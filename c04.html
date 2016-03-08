@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+
+        return { x : x - bbox.left, y : y - bbox.top }
+    }
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.radius = 10;
+        this.color = "red";
+        this.angle = 0;
+    }
+
+    Ball.prototype = {
+        draw : function() {
+            context.save();
+
+            context.beginPath();
+
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            //context.fillRect(0, 0, 30, 5);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    }
+
+    var ball = new Ball();
+
+    var vx = 800; // 초당 이동속도
+    var vy = 0;
+
+    var time = +new Date();
+
+    ball.x = 0;
+    ball.y = 100;
+    //ball.angle = 45 * Math.PI / 180;
+
+    canvas.onmousemove = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+    }
+
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        var elapsed = +new Date() - time;
+
+        ball.x += vx * elapsed / 1000;
+        ball.y += vy * elapsed / 1000;
+
+        time = +new Date();
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+    }
+
+</script>
+</body>
+</html>
