@@ -34,6 +34,8 @@
 
     Ball.prototype = {
         draw : function() {
+            context.save();
+
             context.beginPath();
 
             context.translate(this.x, this.y);
@@ -42,16 +44,57 @@
             context.fillRect(0, 0, 30, 5);
             context.fillStyle = this.color;
             context.fill();
+
+            context.restore();
         }
     }
 
     var ball = new Ball();
 
+    var ax = 0;
+    var ay = 0;
+    var vx = 0;
+    var vy = 0;
+    var friction = 0.98;
+
     ball.x = 100;
     ball.y = 100;
-    ball.angle = 45 * Math.PI / 180;
+    //ball.angle = 45 * Math.PI / 180;
 
-    ball.draw();
+    canvas.onmousedown = function(e) {
+        ax = 0.5;
+    };
+
+    canvas.onmouseup = function(e) {
+        ax = 0;
+    };
+
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        vx += ax;
+        vy += ay;
+
+        vx *= friction;
+        vy *= friction;
+
+        ball.x += vx;
+        ball.y += vy;
+
+        if(ball.x > canvas.width) {
+            ball.x = 0;
+        }
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+    }
 
 </script>
 </body>
