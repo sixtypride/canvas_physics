@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+
+        return { x : x - bbox.left, y : y - bbox.top }
+    }
+
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        add : function (vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+
+        sub : function (vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+
+        scale : function (scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+
+        length : function () {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+
+        normalize : function () {
+            var len = this.length();
+
+            return new Vector2d(this.x / len, this.y / len);
+        },
+
+        perp : function (cw) {
+            if(cw)
+                return new Vector2d(-this.y , this.x);
+            else return new Vector2d( this.y, -this.x);
+        },
+
+        dot : function (vec) {
+            return this.x * vec.x + this.y * vec.y;
+        }
+    };
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.radius = 10;
+        this.color = "red";
+        this.angle = 0;
+    }
+
+    Ball.prototype = {
+        draw : function() {
+            context.save();
+
+            context.beginPath();
+
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            context.fillRect(-30, -5, 30, 10);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    }
+
+    var ball = new Ball();
+
+    var vx = 0;
+    var vy = 0;
+
+    var angle = -45;
+    var speed = 5;
+
+    ball.x = 100;
+    ball.y = 500;
+    //ball.angle = 45 * Math.PI / 180;
+
+    canvas.onmousemove = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        var dx = loc.x - ball.x;
+        var dy = loc.y - ball.y;
+
+        angle = Math.atan2(dy, dx);
+
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
+    };
+
+
+    requestAnimationFrame(loop);
+
+
+    function loop() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        ball.angle = Math.atan2(vy, vx);
+
+        ball.x += vx;
+        ball.y += vy;
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+    }
+
+</script>
+</body>
+</html>
