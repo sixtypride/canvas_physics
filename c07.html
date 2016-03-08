@@ -99,7 +99,6 @@
     var vx = 0;
     var vy = 0;
 
-    var angle = -45;
     var speed = 5;
 
     ball.x = 100;
@@ -112,12 +111,13 @@
         var dx = loc.x - ball.x;
         var dy = loc.y - ball.y;
 
-        angle = Math.atan2(dy, dx);
+        var m = new Vector2d(dx, dy);
 
-        vx = Math.cos(angle) * speed;
-        vy = Math.sin(angle) * speed;
+        m = m.normalize().scale(speed);
+
+        vx = m.x;
+        vy = m.y;
     };
-
 
     requestAnimationFrame(loop);
 
