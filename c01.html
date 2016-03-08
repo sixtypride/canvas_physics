@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.radius = 10;
+        this.color = "red";
+        this.angle = 0;
+    }
+
+    Ball.prototype = {
+        draw : function() {
+            context.beginPath();
+
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            context.fillRect(0, 0, 30, 5);
+            context.fillStyle = this.color;
+            context.fill();
+        }
+    }
+
+    var ball = new Ball();
+
+    ball.x = 100;
+    ball.y = 100;
+    ball.angle = 45 * Math.PI / 180;
+
+    ball.draw();
+
+</script>
+</body>
+</html>
