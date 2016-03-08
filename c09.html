@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported
+</canvas>
+<script>
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+
+        return { x : x - bbox.left, y : y - bbox.top }
+    }
+
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        add : function (vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+
+        sub : function (vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+
+        scale : function (scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+
+        length : function () {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+
+        normalize : function () {
+            var len = this.length();
+
+            return new Vector2d(this.x / len, this.y / len);
+        },
+
+        perp : function (cw) {
+            if(cw)
+                return new Vector2d(-this.y , this.x);
+            else return new Vector2d( this.y, -this.x);
+        },
+
+        dot : function (vec) {
+            return this.x * vec.x + this.y * vec.y;
+        }
+    };
+
+    function Point(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    function Line(sPt, ePt) {
+        this.sPt = sPt;
+        this.ePt = ePt;
+    }
+
+    Line.prototype = {
+        draw : function () {
+            context.save();
+
+            context.beginPath();
+            context.moveTo(this.sPt.x, this.sPt.y);
+            context.lineTo(this.ePt.x, this.ePt.y);
+
+            context.stroke();
+
+            context.restore();
+        }
+    };
+
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.radius = 10;
+        this.color = "red";
+        this.angle = 0;
+    }
+
+    Ball.prototype = {
+        draw : function() {
+            context.save();
+
+            context.beginPath();
+
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+//            context.fillRect(-30, -5, 30, 10);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    }
+
+    var ball = new Ball();
+
+    var vx = 0;
+    var vy = 0;
+
+
+    var line = new Line(new Point(400, 400), new Point(800, 300));
+
+
+
+
+    var speed = 20;
+
+    var friction = 0.9;
+
+    var gravity = 0.4;
+
+    var startX = 100;
+    var startY = 500;
+
+    ball.x = startX;
+    ball.y = startY;
+    //ball.angle = 45 * Math.PI / 180;
+
+    canvas.onmousedown = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        var dx = loc.x - startX;
+        var dy = loc.y - startY;
+
+        var m = new Vector2d(dx, dy);
+
+        m = m.normalize().scale(speed);
+
+        ball.x = startX;
+        ball.y = startY;
+
+        vx = m.x;
+        vy = m.y;
+    };
+
+    requestAnimationFrame(loop);
+
+    function hitTestByDistance() {
+        var a = new Vector2d(line.ePt.x - line.sPt.x, line.ePt.y - line.sPt.y);
+        var b = new Vector2d(line.sPt.x - ball.x, line.sPt.y - ball.y);
+
+        var t = b.dot(a) / a.dot(a) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        if(p.length() <= ball.radius) {
+
+            b = b.scale(-1);
+            var c = a.perp(false);
+            var d = c.normalize();
+
+            var len = b.dot(d);
+
+            var e = d.scale(ball.radius - len);
+
+            ball.x += e.x;
+            ball.y += e.y;
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+    function loop() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        vy += gravity;
+
+        ball.x += vx;
+        ball.y += vy;
+
+        if(hitTestByDistance()) {
+            render();
+            return;
+        }
+
+        if(ball.x < ball.radius) {
+            vx *= -friction;
+            vy *= friction;
+            ball.x = ball.radius;
+        }
+        if(ball.x > canvas.width - ball.radius) {
+            vx *= -friction;
+            vy *= friction;
+            ball.x = canvas.width - ball.radius;
+        }
+        if(ball.y < ball.radius) {
+            vy *= -friction;
+            vx *= friction;
+            ball.y = ball.radius;
+        }
+        if(ball.y > canvas.height - ball.radius) {
+            vy *= -friction;
+            vx *= friction;
+            ball.y = canvas.height - ball.radius;
+        }
+
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+        line.draw();
+    }
+
+</script>
+</body>
+</html>
