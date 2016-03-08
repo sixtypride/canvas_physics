@@ -47,7 +47,7 @@
             context.translate(this.x, this.y);
             context.rotate(this.angle);
             context.arc(0, 0, this.radius, 0, Math.PI * 2);
-            //context.fillRect(0, 0, 30, 5);
+            context.fillRect(-30, -5, 30, 10);
             context.fillStyle = this.color;
             context.fill();
 
@@ -61,18 +61,22 @@
     var vy = 0;
 
     var angle = -45;
-    var speed = 10;
-
-    vx = Math.cos(angle * Math.PI / 180) * speed;
-    vy = Math.sin(angle * Math.PI / 180) * speed;
+    var speed = 5;
 
     ball.x = 100;
     ball.y = 500;
     //ball.angle = 45 * Math.PI / 180;
 
-    canvas.onmousedown = function(e) {
+    canvas.onmousemove = function(e) {
         var loc = windowToCanvas(e.clientX, e.clientY);
 
+        var dx = loc.x - ball.x;
+        var dy = loc.y - ball.y;
+
+        angle = Math.atan2(dy, dx);
+
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
     };
 
 
@@ -81,6 +85,8 @@
 
     function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
+
+        ball.angle = Math.atan2(vy, vx);
 
         ball.x += vx;
         ball.y += vy;
