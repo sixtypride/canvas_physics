@@ -86,13 +86,12 @@
             context.translate(this.x, this.y);
             context.rotate(this.angle);
             context.arc(0, 0, this.radius, 0, Math.PI * 2);
-//            context.fillRect(-30, -5, 30, 10);
             context.fillStyle = this.color;
             context.fill();
 
             context.restore();
         }
-    }
+    };
 
     var ball = new Ball();
 

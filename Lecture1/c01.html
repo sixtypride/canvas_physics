@@ -29,7 +29,6 @@
 
         this.radius = 10;
         this.color = "red";
-        this.angle = 0;
     }
 
     Ball.prototype = {
@@ -39,17 +38,18 @@
             context.beginPath();
 
             context.translate(this.x, this.y);
-            context.rotate(this.angle);
             context.arc(0, 0, this.radius, 0, Math.PI * 2);
-            context.fillRect(0, 0, 30, 5);
             context.fillStyle = this.color;
             context.fill();
 
             context.restore();
         }
-    }
+    };
 
     var ball = new Ball();
+    ball.x = 100;
+    ball.y = 100;
+    ball.draw();
 
     var ax = 0;
     var ay = 0;
@@ -75,26 +75,17 @@
     function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        vx += ax;
-        vy += ay;
-
-        vx *= friction;
-        vy *= friction;
-
-        ball.x += vx;
-        ball.y += vy;
-
-        if(ball.x > canvas.width) {
-            ball.x = 0;
-        }
-
-        render();
+        // 코드 작성
         requestAnimationFrame(loop);
     }
 
     function render() {
         ball.draw();
     }
+
+
+
+
 
 </script>
 </body>

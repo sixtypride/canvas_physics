@@ -65,7 +65,12 @@
 
     ball.x = 100;
     ball.y = 500;
-    //ball.angle = 45 * Math.PI / 180;
+
+
+
+    radian = 45 * Math.PI / 180;
+
+
 
     canvas.onmousemove = function(e) {
         var loc = windowToCanvas(e.clientX, e.clientY);
@@ -73,10 +78,10 @@
         var dx = loc.x - ball.x;
         var dy = loc.y - ball.y;
 
-        angle = Math.atan2(dy, dx);
+        var radian = Math.atan2(dy, dx);
 
-        vx = Math.cos(angle) * speed;
-        vy = Math.sin(angle) * speed;
+        vx = Math.cos(radian) * 10;
+        vy = Math.sin(radian) * 10;
     };
 
 
