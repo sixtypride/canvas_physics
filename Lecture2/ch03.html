@@ -75,8 +75,24 @@
         }
     };
 
+    function Line(sP, eP) {
+        this.sP = sP;
+        this.eP = eP;
+    }
+    Line.prototype = {
+        draw: function() {
+            context.beginPath();
+            context.moveTo(this.sP.x, this.sP.y);
+            context.lineTo(this.eP.x, this.eP.y);
+            context.stroke();
+        }
+    };
+
+
+
+
     var friction = 0.97;
-    var speed = 20;
+    var speed = 50;
     var gravity = 0.4;
 
     var startP = new Vector2d(100, 500);
@@ -84,6 +100,16 @@
     var ball = new Ball();
     ball.p.x = startP.x;
     ball.p.y = startP.y;
+
+    var l1 = new Line(new Vector2d(500, 400), new Vector2d(800, 300));
+    var l2 = new Line(new Vector2d(400, canvas.height), new Vector2d(500, 400));
+
+    var tW = new Line(new Vector2d(canvas.width, 0), new Vector2d(0, 0));
+    var lW = new Line(new Vector2d(0, 0), new Vector2d(0, canvas.height));
+    var rW = new Line(new Vector2d(canvas.width, canvas.height), new Vector2d(canvas.width, 0));
+    var bW = new Line(new Vector2d(0, canvas.height), new Vector2d(canvas.width, canvas.height));
+
+    var lines = [l1, l2, tW, lW, rW, bW];
 
     canvas.onmousedown = function(e) {
         var bbox = canvas.getBoundingClientRect();
@@ -97,8 +123,69 @@
         ball.v = d.normalize().scale(speed);
     };
 
-
     requestAnimationFrame(loop);
+
+    function hitTestByDistance(line) {
+        var a = line.eP.sub(line.sP);
+        var b = line.sP.sub(ball.p);
+
+        var t = a.dot(b) / a.dot(a) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        if(p.length() <= ball.radius) {
+            b = b.scale(-1);
+            var c = a.perp(false);
+            var d = c.normalize();
+            var len = b.dot(d);
+            var e = d.scale(ball.radius - len);
+
+            ball.p = ball.p.add(e);
+
+            ball.v = reflectVector(a);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    function hitTestByIntersect(line) {
+        var a = line.eP.sub(line.sP);
+        var b = line.sP.sub(ball.p.sub(ball.v));
+        var c = ball.v.perp(false);
+
+        var t = b.dot(c) / a.dot(c) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var d = b.scale(-1);
+        var e = a.perp(false);
+
+        var s = d.dot(e) / ball.v.dot(e) * -1;
+
+        if(s < 0 || s > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        ball.p = ball.p.sub(ball.v.sub(p));
+
+        ball.p = ball.p.add(e.normalize().scale(ball.radius));
+
+        ball.v = reflectVector(a);
+    }
+
+    function reflectVector(a) {
+        var b = ball.v.scale(-1);
+        var c = a.perp(false);
+        var d = c.normalize();
+        var len = b.dot(d);
+        var e = d.scale(len);
+
+        return ball.v.add(e).add(e).scale(friction);
+    }
 
     function loop() {
         context.clearRect(0,0, canvas.width, canvas.height);
@@ -106,30 +193,14 @@
         ball.v.y += gravity;
         ball.p = ball.p.add(ball.v);
 
-        if(ball.p.x > canvas.width - ball.radius) {
-            ball.p.x = canvas.width - ball.radius;
-            ball.v.x *= -friction;
-            ball.v.y *= friction;
+        for(var i = 0; i < lines.length; i++) {
+            if(!hitTestByDistance(lines[i])) {
+                if(hitTestByIntersect(lines[i])) {
+                    render();
+                    return;
+                }
+            }
         }
-
-        if(ball.p.x < ball.radius) {
-            ball.p.x = ball.radius;
-            ball.v.x *= -friction;
-            ball.v.y *= friction;
-        }
-
-        if(ball.p.y > canvas.height - ball.radius) {
-            ball.p.y = canvas.height - ball.radius;
-            ball.v.x *= friction;
-            ball.v.y *= -friction;
-        }
-
-        if(ball.p.y < ball.radius) {
-            ball.p.y = ball.radius;
-            ball.v.x *= friction;
-            ball.v.y *= -friction;
-        }
-
 
         render();
         requestAnimationFrame(loop);
@@ -137,8 +208,10 @@
 
     function render() {
         ball.draw();
+        for(var i = 0; i < lines.length; i++) {
+            lines[i].draw();
+        }
     }
-
 
 
 </script>
