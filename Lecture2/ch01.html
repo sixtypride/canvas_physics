@@ -22,6 +22,73 @@
 <script>
     // GitHub -> https://goo.gl/lODj9K
     // https://github.com/sixtypride/canvas_physics/tree/master/Lecture2
+
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.vx = 0;
+        this.vy = 0;
+
+        this.radius = 10;
+    }
+
+    Ball.prototype = {
+        draw: function() {
+            context.beginPath();
+            context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            context.fill();
+        }
+    };
+
+    var friction = 0.97;
+    var speed = 5;
+
+    var ball = new Ball();
+    ball.x = 100;
+    ball.y = 100;
+
+    var ax = 0;
+    var ay = 0;
+
+    canvas.onmousedown = function() {
+        ax = 0.5;
+    };
+    canvas.onmouseup = function() {
+        ax = 0;
+    };
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        context.clearRect(0,0, canvas.width, canvas.height);
+
+        ball.vx += ax;
+        ball.vy += ay;
+
+        ball.vx *= friction;
+        ball.vy *= friction;
+
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        if(ball.x > canvas.width) {
+            ball.x = 0;
+        }
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+    }
+
+
+
 </script>
 </body>
 </html>
