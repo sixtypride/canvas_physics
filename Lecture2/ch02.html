@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported test
+</canvas>
+<script>
+    // GitHub -> https://goo.gl/lODj9K
+    // https://github.com/sixtypride/canvas_physics/tree/master/Lecture2
+
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+
+        this.vx = 0;
+        this.vy = 0;
+
+        this.radius = 10;
+    }
+
+    Ball.prototype = {
+        draw: function() {
+            context.beginPath();
+            context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            context.fill();
+        }
+    };
+
+    var friction = 0.97;
+    var speed = 20;
+    var gravity = 0.4;
+
+    var startX = 100;
+    var startY = 500;
+
+    var ball = new Ball();
+    ball.x = startX;
+    ball.y = startY;
+
+    canvas.onmousedown = function(e) {
+        var bbox = canvas.getBoundingClientRect();
+        var mouseX = e.clientX - bbox.left;
+        var mouseY = e.clientY - bbox.top;
+
+        var dx = mouseX - startX;
+        var dy = mouseY - startY;
+
+        ball.x = startX;
+        ball.y = startY;
+
+        var radian = Math.atan2(dy, dx);
+
+        ball.vx = Math.cos(radian) * speed;
+        ball.vy = Math.sin(radian) * speed;
+    };
+
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+        context.clearRect(0,0, canvas.width, canvas.height);
+
+        ball.vy += gravity;
+
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        if(ball.x > canvas.width - ball.radius) {
+            ball.x = canvas.width - ball.radius;
+            ball.vx *= -friction;
+            ball.vy *= friction;
+        }
+
+        if(ball.x < ball.radius) {
+            ball.x = ball.radius;
+            ball.vx *= -friction;
+            ball.vy *= friction;
+        }
+
+        if(ball.y > canvas.height - ball.radius) {
+            ball.y = canvas.height - ball.radius;
+            ball.vx *= friction;
+            ball.vy *= -friction;
+        }
+
+        if(ball.y < ball.radius) {
+            ball.y = ball.radius;
+            ball.vx *= friction;
+            ball.vy *= -friction;
+        }
+
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        ball.draw();
+    }
+
+
+
+</script>
+</body>
+</html>
