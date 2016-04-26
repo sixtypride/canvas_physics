@@ -75,7 +75,20 @@
     function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 코드 작성
+        vx += ax;
+        vy += ay;
+
+        vx *= friction;
+        vy *= friction;
+
+        ball.x += vx;
+        ball.y += vy;
+
+        if(ball.x > canvas.width) {
+            ball.x = 0;
+        }
+
+        render();
         requestAnimationFrame(loop);
     }
 
