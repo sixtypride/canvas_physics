@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported test
+</canvas>
+<script>
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        constructor: Vector2d,
+
+        add: function(vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+        addLocal: function(vec) {
+            this.x += vec.x;
+            this.y += vec.y;
+        },
+        sub: function(vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+        scale: function(scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+        dot: function(vec) {
+            return this.x * vec.x + this.y * vec.y;
+        },
+        length: function() {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+        normalize: function() {
+            var len = this.length();
+            return new Vector2d(this.x / len, this.y / len);
+        },
+
+        perp: function(cw) {
+            if(cw) {
+                return new Vector2d(-this.y, this.x);
+            } else {
+                return new Vector2d(this.y, -this.x);
+            }
+        }
+    };
+
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+
+        return new Vector2d(x - bbox.left, y - bbox.top);
+    }
+
+    function Ball() {
+        this.p = new Vector2d(0, 0);
+        this.v = new Vector2d(0, 0);
+        this.radius = 10;
+        this.color = "black";
+    }
+
+    Ball.prototype = {
+        constructor: Ball,
+
+        draw: function() {
+            context.save();
+            context.translate(this.p.x, this.p.y);
+            context.beginPath();
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            context.fillStyle = this.color;
+            context.fill();
+            context.restore();
+        }
+    };
+
+    function Line(sp, ep) {
+        this.sp = sp;
+        this.ep = ep;
+    }
+    Line.prototype = {
+        constructor: Line,
+
+        draw: function() {
+            context.beginPath();
+            context.moveTo(this.sp.x, this.sp.y);
+            context.lineTo(this.ep.x, this.ep.y);
+            context.stroke();
+        }
+    };
+
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    var friction = 0.98;
+    var gravity = 0.4;
+    var speed = 50;
+
+    var startP = new Vector2d(100, 500);
+
+    var ball = new Ball();
+    ball.p.x = startP.x;
+    ball.p.y = startP.y;
+
+    var line0 = new Line(new Vector2d(500, 500), new Vector2d(1000, 300));
+    var line1 = new Line(new Vector2d(400, canvas.height), new Vector2d(500, 500));
+
+    var leftWall = new Line(new Vector2d(0,0), new Vector2d(0, canvas.height));
+    var rightWall = new Line(new Vector2d(canvas.width, canvas.height), new Vector2d(canvas.width, 0));
+    var topWall = new Line(new Vector2d(canvas.width,0), new Vector2d(0, 0));
+    var bottomWall = new Line(new Vector2d(0, canvas.height), new Vector2d(canvas.width, canvas.height));
+
+
+    var lines = [leftWall, rightWall, topWall, bottomWall];
+    lines.push(line0);
+    lines.push(line1);
+
+    canvas.onmousedown = function (e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        var dp = loc.sub(startP);
+
+        ball.p.x = startP.x;
+        ball.p.y = startP.y;
+
+        ball.v = dp.normalize().scale(speed);
+    };
+
+    requestAnimationFrame(loop);
+    function loop() {
+        ball.v.y += gravity;
+        ball.p.addLocal(ball.v);
+
+        for(var i = 0; i < lines.length; i++) {
+            if(!hitTestByDistance(lines[i])) {
+                if(hitTestByIntersect(lines[i])) {
+//                    render();
+//                    return;
+                }
+            }
+        }
+
+        render();
+
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        ball.draw();
+
+        for(var i = 0; i < lines.length; i++) {
+            lines[i].draw();
+        }
+    }
+
+    function hitTestByDistance(line) {
+        var a = line.ep.sub(line.sp);
+        var b = line.sp.sub(ball.p);
+
+        var t = a.dot(b) / a.dot(a) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        if(p.length() < ball.radius) {
+            b = b.scale(-1);
+            var c = a.perp(false);
+            var d = c.normalize();
+            var len = b.dot(d);
+            var e = d.scale(ball.radius - len);
+
+            ball.p.addLocal(e);
+
+            ball.v = reflectVector(line);
+
+            return true;
+        }
+        return false;
+    }
+
+    function reflectVector(line) {
+        var a = line.ep.sub(line.sp);
+        var b = ball.v.scale(-1);
+        var c = a.perp(false);
+        var d = c.normalize();
+        var len = b.dot(d);
+        var e = d.scale(len);
+
+        return ball.v.add(e).add(e).scale(friction);
+    }
+
+    function hitTestByIntersect(line) {
+        var a = line.ep.sub(line.sp);
+        var b = line.sp.sub(ball.p.sub(ball.v));
+        var c = ball.v.perp(false);
+        var t = b.dot(c) / a.dot(c) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var d = b.scale(-1);
+        var e = a.perp(false);
+        var s = d.dot(e) / ball.v.dot(e) * -1;
+
+        if(s < 0 || s > 1) return false;
+
+        var p = a.scale(t).add(b);
+        ball.p = ball.p.sub(ball.v).add(p);
+
+        ball.p.addLocal(e.normalize().scale(ball.radius));
+
+        ball.v = reflectVector(line);
+
+        return true;
+    }
+</script>
+</body>
+</html>
