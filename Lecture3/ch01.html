@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example</title>
+
+    <style>
+        body {
+            background: #dddddd;
+        }
+
+        #canvas {
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id='canvas' width="800" height="600">
+    Canvas not supported test
+</canvas>
+<script>
+    //https://github.com/sixtypride/canvas_physics/tree/master/Lecture3
+    function Ball() {
+        this.x = 0;
+        this.y = 0;
+        this.radius = 10;
+        this.color = "black";
+    }
+
+    Ball.prototype = {
+        draw: function() {
+            context.save();
+
+            context.translate(this.x, this.y);
+            context.beginPath();
+            context.arc(0, 0, this.radius, 0, Math.PI * 2);
+            context.fillStyle = this.color;
+            context.fill();
+
+            context.restore();
+        }
+    };
+
+    var canvas = document.getElementById("canvas");
+    var context = canvas.getContext("2d");
+
+    var ball = new Ball();
+    ball.x = 100;
+    ball.y = 100;
+
+    requestAnimationFrame(loop);
+
+    function loop() {
+
+        ball.x += 1;
+
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    function render() {
+        context.clearRect(0,0, canvas.width, canvas.height);
+
+        ball.draw();
+    }
+
+</script>
+</body>
+</html>
