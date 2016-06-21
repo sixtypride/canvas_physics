@@ -60,6 +60,19 @@
         }
     };
 
+    function Line(sp, ep) {
+        this.sp = sp;
+        this.ep = ep;
+    }
+    Line.prototype = {
+        draw: function() {
+            context.beginPath();
+            context.moveTo(this.sp.x, this.sp.y);
+            context.lineTo(this.ep.x, this.ep.y);
+            context.stroke();
+        }
+    };
+
     function Ball() {
         this.p = new Vector2d(0, 0);
         this.v = new Vector2d(0, 0);
@@ -85,6 +98,8 @@
     var context = canvas.getContext("2d");
 
     var ball = new Ball();
+
+    var line = new Line(new Vector2d(500, 400), new Vector2d(800, 300));
 
     // 속력
     var speed = 20;
@@ -144,8 +159,6 @@
             ball.p.y = ball.radius;
         }
 
-
-
         render();
         requestAnimationFrame(loop);
     }
@@ -154,6 +167,7 @@
         context.clearRect(0,0, canvas.width, canvas.height);
 
         ball.draw();
+        line.draw();
     }
 
 </script>
