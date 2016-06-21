@@ -24,6 +24,7 @@
     function Ball() {
         this.x = 0;
         this.y = 0;
+
         this.radius = 10;
         this.color = "black";
     }
@@ -49,11 +50,38 @@
     ball.x = 100;
     ball.y = 100;
 
+    // 가속도
+    var ax = 0;
+    // 속력
+    var speed = 5;
+    // 속도
+    var vx = speed;
+    var vy = speed;
+    // 마찰
+    var friction = 1;
+    // 중력
+    var gravity = 0.4;
+
+    canvas.onmousedown = function() {
+        ax = 0.2;
+    };
+
+    canvas.onmouseup = function() {
+        ax = 0;
+    };
+
     requestAnimationFrame(loop);
 
     function loop() {
 
-        ball.x += 1;
+        vy += gravity;
+
+        ball.x += vx;
+        ball.y += vy;
+
+        if(ball.x > canvas.width) {
+            ball.x = 0;
+        }
 
         render();
         requestAnimationFrame(loop);
