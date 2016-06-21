@@ -23,14 +23,46 @@
     //https://github.com/sixtypride/canvas_physics/tree/master/Lecture3
     function windowToCanvas(x, y) {
         var bbox = canvas.getBoundingClientRect();
-        return { x : x - bbox.left, y : y - bbox.top }
+        return new Vector2d(x - bbox.left, y - bbox.top);
     }
 
+    function Vector2d(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vector2d.prototype = {
+        add: function(vec) {
+            return new Vector2d(this.x + vec.x, this.y + vec.y);
+        },
+        sub: function(vec) {
+            return new Vector2d(this.x - vec.x, this.y - vec.y);
+        },
+        scale: function(scale) {
+            return new Vector2d(this.x * scale, this.y * scale);
+        },
+        length: function() {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+        },
+        normalize: function() {
+            var len = this.length();
+            return new Vector2d(this.x / len, this.y / len);
+        },
+        perp: function(cw) {
+            if(cw) {
+                return new Vector2d(-this.y, this.x);
+            } else {
+                return new Vector2d(this.y, -this.x);
+            }
+        },
+        dot: function(vec) {
+            return this.x * vec.x + this.y * vec.y;
+        }
+    };
+
     function Ball() {
-        this.x = 0;
-        this.y = 0;
-        this.vx = 0;
-        this.vy = 0;
+        this.p = new Vector2d(0, 0);
+        this.v = new Vector2d(0, 0);
         this.radius = 10;
         this.color = "black";
     }
@@ -39,7 +71,7 @@
         draw: function() {
             context.save();
 
-            context.translate(this.x, this.y);
+            context.translate(this.p.x, this.p.y);
             context.beginPath();
             context.arc(0, 0, this.radius, 0, Math.PI * 2);
             context.fillStyle = this.color;
@@ -53,43 +85,66 @@
     var context = canvas.getContext("2d");
 
     var ball = new Ball();
-    ball.x = 100;
-    ball.y = 100;
 
     // 속력
-    var speed = 5;
+    var speed = 20;
     // 마찰
-    var friction = 1;
+    var friction = 0.98;
     // 중력
     var gravity = 0.4;
 
     var angle = 45 * Math.PI / 180;
 
+    var startP = new Vector2d(100, 500);
+    ball.p.x = startP.x;
+    ball.p.y = startP.y;
 
-    canvas.onmousemove = function(e) {
+
+    canvas.onmousedown = function(e) {
         var loc = windowToCanvas(e.clientX, e.clientY);
 
-        var dx = loc.x - ball.x;
-        var dy = loc.y - ball.y;
+        var d = loc.sub(ball.p);
+        d = d.normalize().scale(speed);
 
-        angle = Math.atan2(dy, dx);
+        ball.p.x = startP.x;
+        ball.p.y = startP.y;
 
-        ball.vx = speed * Math.cos(angle);
-        ball.vy = speed * Math.sin(angle);
+        ball.v = d;
     };
 
     requestAnimationFrame(loop);
 
     function loop() {
 
-        //ball.vy += gravity;
+        ball.v.y += gravity;
 
-        ball.x += ball.vx;
-        ball.y += ball.vy;
+        ball.p = ball.p.add(ball.v);
 
-        if(ball.x > canvas.width) {
-            ball.x = 0;
+        if(ball.p.x > canvas.width - ball.radius) {
+            ball.v.x *= -friction;
+            ball.v.y *= friction;
+
+            ball.p.x = canvas.width - ball.radius;
         }
+        if(ball.p.x < ball.radius) {
+            ball.v.x *= -friction;
+            ball.v.y *= friction;
+            ball.p.x = ball.radius;
+        }
+        if(ball.p.y > canvas.height - ball.radius) {
+            ball.v.x *= friction;
+            ball.v.y *= -friction;
+
+            ball.p.y = canvas.height - ball.radius;
+        }
+        if(ball.p.y < ball.radius) {
+            ball.v.x *= friction;
+            ball.v.y *= -friction;
+
+            ball.p.y = ball.radius;
+        }
+
+
 
         render();
         requestAnimationFrame(loop);
