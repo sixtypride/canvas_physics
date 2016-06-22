@@ -99,10 +99,22 @@
 
     var ball = new Ball();
 
-    var line = new Line(new Vector2d(500, 400), new Vector2d(800, 300));
+    var line0 = new Line(new Vector2d(500, 500), new Vector2d(1000, 300));
+    var line1 = new Line(new Vector2d(400, canvas.height), new Vector2d(500, 500));
+
+    var leftWall = new Line(new Vector2d(0,0), new Vector2d(0, canvas.height));
+    var rightWall = new Line(new Vector2d(canvas.width, canvas.height), new Vector2d(canvas.width, 0));
+    var topWall = new Line(new Vector2d(canvas.width,0), new Vector2d(0, 0));
+    var bottomWall = new Line(new Vector2d(0, canvas.height), new Vector2d(canvas.width, canvas.height));
+
+
+    var lines = [leftWall, rightWall, topWall, bottomWall];
+    lines.push(line0);
+    lines.push(line1);
+
 
     // 속력
-    var speed = 20;
+    var speed = 50;
     // 마찰
     var friction = 0.98;
     // 중력
@@ -135,39 +147,88 @@
 
         ball.p = ball.p.add(ball.v);
 
-        if(ball.p.x > canvas.width - ball.radius) {
-            ball.v.x *= -friction;
-            ball.v.y *= friction;
-
-            ball.p.x = canvas.width - ball.radius;
-        }
-        if(ball.p.x < ball.radius) {
-            ball.v.x *= -friction;
-            ball.v.y *= friction;
-            ball.p.x = ball.radius;
-        }
-        if(ball.p.y > canvas.height - ball.radius) {
-            ball.v.x *= friction;
-            ball.v.y *= -friction;
-
-            ball.p.y = canvas.height - ball.radius;
-        }
-        if(ball.p.y < ball.radius) {
-            ball.v.x *= friction;
-            ball.v.y *= -friction;
-
-            ball.p.y = ball.radius;
+        for(var i = 0; i < lines.length; i++) {
+            if(!hitTestByDistance(lines[i])) {
+                if(hitTestByIntersect(lines[i])) {
+                }
+            }
         }
 
         render();
         requestAnimationFrame(loop);
+    }
+    function hitTestByDistance(line) {
+        var a = line.ep.sub(line.sp);
+        var b = line.sp.sub(ball.p);
+
+        var t = b.dot(a) / a.dot(a) * -1;
+
+        if(t < 0 || t > 1) {
+            return false;
+        }
+        var p = a.scale(t).add(b);
+
+        if(p.length() < ball.radius) {
+
+            b = b.scale(-1);
+
+            var c = a.perp(false);
+            var d = c.normalize();
+
+            var len = b.dot(d);
+
+            ball.p = ball.p.add(d.scale(ball.radius - len));
+
+            ball.v = reflectVector(line);
+
+            return true;
+        }
+    }
+    function hitTestByIntersect(line) {
+        var a = line.ep.sub(line.sp);
+        var b = line.sp.sub(ball.p.sub(ball.v));
+        var c = ball.v.perp(false);
+
+        var t = b.dot(c) / a.dot(c) * -1;
+
+        if(t < 0 || t > 1) return false;
+
+        var d = b.scale(-1);
+        var e = a.perp(false);
+
+        var s = d.dot(e) / ball.v.dot(e) * -1;
+
+        if(s < 0 || s > 1) return false;
+
+        var p = a.scale(t).add(b);
+
+        ball.p = ball.p.sub(ball.v).add(p);
+
+        ball.p = ball.p.add(a.perp(false).normalize().scale(ball.radius));
+
+        ball.v = reflectVector(line);
+
+        return true;
+
+    }
+
+    function reflectVector(line) {
+        var a = line.ep.sub(line.sp);
+        var b = ball.v.scale(-1);
+        var c = a.perp(false).normalize();
+        var len = b.dot(c);
+        var d = c.scale(len);
+
+        return ball.v.add(d).add(d);
     }
 
     function render() {
         context.clearRect(0,0, canvas.width, canvas.height);
 
         ball.draw();
-        line.draw();
+        for(var i = 0; i < lines.length; i++) {
+            lines[i].draw();
+        }
     }
 
 </script>

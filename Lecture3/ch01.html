@@ -21,10 +21,16 @@
 </canvas>
 <script>
     //https://github.com/sixtypride/canvas_physics/tree/master/Lecture3
+    function windowToCanvas(x, y) {
+        var bbox = canvas.getBoundingClientRect();
+        return { x : x - bbox.left, y : y - bbox.top }
+    }
+
     function Ball() {
         this.x = 0;
         this.y = 0;
-
+        this.vx = 0;
+        this.vy = 0;
         this.radius = 10;
         this.color = "black";
     }
@@ -50,34 +56,36 @@
     ball.x = 100;
     ball.y = 100;
 
-    // 가속도
-    var ax = 0;
     // 속력
     var speed = 5;
-    // 속도
-    var vx = speed;
-    var vy = speed;
     // 마찰
     var friction = 1;
     // 중력
     var gravity = 0.4;
 
-    canvas.onmousedown = function() {
-        ax = 0.2;
-    };
+    var angle = 45 * Math.PI / 180;
 
-    canvas.onmouseup = function() {
-        ax = 0;
+
+    canvas.onmousemove = function(e) {
+        var loc = windowToCanvas(e.clientX, e.clientY);
+
+        var dx = loc.x - ball.x;
+        var dy = loc.y - ball.y;
+
+        angle = Math.atan2(dy, dx);
+
+        ball.vx = speed * Math.cos(angle);
+        ball.vy = speed * Math.sin(angle);
     };
 
     requestAnimationFrame(loop);
 
     function loop() {
 
-        vy += gravity;
+        //ball.vy += gravity;
 
-        ball.x += vx;
-        ball.y += vy;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
 
         if(ball.x > canvas.width) {
             ball.x = 0;
